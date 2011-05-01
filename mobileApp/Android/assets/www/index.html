@@ -1,0 +1,222 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<title>FoundFree</title>
+<link rel="stylesheet"
+	href="http://code.jquery.com/mobile/1.0a4.1/jquery.mobile-1.0a4.1.min.css" />
+<link rel="stylesheet" href="css/foundfree.css" />
+<script type="text/javascript" charset="utf-8"
+	src="scripts/php.full.min.js"></script>
+<script type="text/javascript" charset="utf-8" src="phonegap.0.9.4.js"></script>
+<script type="text/javascript" src="http://www.google.com/jsapi?key="></script>
+<script type="text/javascript">
+		google.load("maps", "3", {'other_params':'sensor=true'});
+	</script>
+<script type="text/javascript" src="scripts/jquery.min.js"></script>
+<script type="text/javascript"
+	src="scripts/jquery.mobile-1.0a4.1.min.js"></script>
+<script type="text/javascript" src="scripts/jquery.ui.map.min.js"></script>
+<script type="text/javascript" src="scripts/foundfree.js"></script>
+<script type="text/javascript" charset="utf-8">
+
+    var myLoc = null;
+   	var curFile = null;
+   	var pictureSource = null;
+
+   	var Stuff = null;
+   	var StuffDetails = null;
+
+   	// PhoneGap is loaded and it is now safe to make calls PhoneGap methods
+   	function onDeviceReady() {
+   		//alert("You are loading onDeviceReady");
+   		getLocalListings(null, function(respData) {
+   			Stuff = respData.data;
+   			//alert(respData.data[0].title);
+	   		navigator.geolocation.getCurrentPosition(geolocationSuccess, geolocationFail);
+	   		pictureSource=navigator.camera.PictureSourceType;
+	        destinationType=navigator.camera.DestinationType;
+	   		//alert(pictureSource);
+   		});
+   	}
+
+    $(function() {
+
+    	$.mobile.loadingMessage = 'Loading "FoundFree" Stuff...';
+
+       	//alert("in Document onReady");
+
+    	showLoading(true);
+		
+    	$(".stuffRow").live("click", function(e) {
+    		StuffDetails = Stuff[$(this).attr("indx")];
+    		return true;
+    	});
+    	
+    	$('#details').live("pageshow", function(e) {
+    		showLoading(true);
+       		_setRecord(StuffDetails);
+    		showLoading(false);
+
+      	}, false);
+
+    	$("#browse").live("pageshow", function() {
+    		showLoading(true);
+    		if(Stuff==null) {
+	    		_loadStuff();
+    		} else {
+    			showBrowseListing(Stuff);
+    		}
+    	}, false);
+
+    	$("#share").live("pageshow", function() {
+    		showLoading(true);
+    		geoCoder = new google.maps.Geocoder();
+    		geoCoder.geocode({
+    			location: new google.maps.LatLng(myLoc.coords.latitude, myLoc.coords.longitude)
+    		}, function(geoRslt) {
+    			showLoading(false);
+    			street = geoRslt[0].address_components[1].short_name;
+    			city = geoRslt[0].address_components[2].short_name;
+    			statr = geoRslt[0].address_components[5].short_name;
+    			zip = geoRslt[0].address_components[7].short_name;
+    			locTxt = street+' '+city+', '+state+' '+zip;
+    			$("#share_loc").html(locTxt);
+    		}, function(error) {
+    			alert(error.message);
+    		});
+    	}, false);
+
+       	$("#stuff_upload").click(function() {
+       		_saveStuff();
+       	});
+       	onDeviceReady();
+		//document.addEventListener("deviceready", onDeviceReady, false);
+	});
+    </script>
+
+</head>
+<body>
+
+	<div id="block-ui"></div>
+
+	<div data-role="page" id="home" data-transition="slide">
+
+		<div data-role="header">
+			<h1>FoundFree App</h1>
+		</div>
+
+		<div data-role="content">
+			<ul data-role='listview'>
+				<li data-role="list-divider" role="heading" data-theme="a">
+					<h2 style="">
+						<em>Share items you find anywhere!</em>
+					</h2></li>
+			</ul>
+			<br />
+			<p>
+				<a href="#browse" data-role="button" data-theme="a">Browse
+					FoundFree Stuff</a>
+			</p>
+			<p>
+				<a href="#share" data-role="button" data-theme="a">Share
+					FoundFree Stuff</a>
+			</p>
+			<div class="ui-bar-c ui-corner-all ui-shadow" style="padding: 1em;">
+				<div id="map_canvas" style="height: 300px;"></div>
+			</div>
+		</div>
+
+	</div>
+
+	<div data-role="page" id="browse" data-transition="slide">
+		<div data-role="header" data-position="fixed" data-inline="true">
+			<a href='#' data-rel='back' data-icon='arrow-l' data-theme='a'>Back</a>
+			<h1>Browse FoundFree Stuff</h1>
+			<a href="javascript:_loadStuff();" data-role="button"
+				data-iconpos="notext" data-icon="refresh">Refresh</a>
+		</div>
+		<div data-role="content" id='search_content'>
+			<ul data-role='listview' id='list'></ul>
+		</div>
+	</div>
+
+	<div data-role="page" id="share" data-transition="slide">
+		<div data-role="header">
+			<h1>Share FoundFree Stuff</h1>
+			<a href='#' data-rel='back' data-icon='arrow-l' data-theme='a'>Back</a>
+		</div>
+		<div data-role="content">
+			<ul data-role='listview'>
+				<li data-role="list-divider" role="heading" data-theme="a">
+					<h2 style="">
+						<em>Take or Select your Photo!</em>
+					</h2></li>
+			</ul>
+			<br />
+			<div data-role="fieldcontain"
+				class="ui-bar-c ui-corner-all ui-shadow" style="padding: 1em;">
+				<label for="title">Title</label> <input type="text" name="title"
+					id="stuff_title" value="" /> <input type="hidden" name="lat"
+					id="stuff_lat" value="" /> <input type="hidden" name="lng"
+					id="stuff_lng" value="" />
+				<button onclick="capturePhoto();">Capture Photo</button>
+				<button onclick="getPhoto(pictureSource.PHOTOLIBRARY);">Select
+					Photo</button>
+			</div>
+			<div id="stuff_image_container" data-role="fieldcontain"
+				class="ui-bar-c ui-corner-all ui-shadow"
+				style="padding: 1em; display: none;">
+				<img
+					style="display: none; width: 250px; height: 250px; margin-left: auto; margin-right: auto;"
+					id="stuff_image" src="" />
+			</div>
+			<input type="button" data-icon="plus" id="stuff_upload"
+				value="Upload" />
+		</div>
+	</div>
+
+	<div data-role="page" id="details" data-transition="slide">
+		<div data-role="header">
+			<h1>FoundFree</h1>
+			<a href='#' data-rel='back' data-icon='arrow-l' data-theme='a'>Back</a>
+		</div>
+		<div data-role="content">
+			<ul data-role='listview'>
+				<li data-role="list-divider" role="heading" data-theme="a">
+					<h2 style="">
+						<em><span id="stuff_detail_title"></span>
+						</em>
+					</h2></li>
+			</ul>
+			<br />
+			<br />
+			<div class="ui-bar-c ui-corner-all ui-shadow" style="padding: 1em;">
+				<img style="margin-left: auto;" src="" id="stuff_detail_img"
+					width="250" height="250" />
+				<hr style='width: 100%;' />
+				<div id="stuff_detail_map" style="height: 250px; width: 250px;"></div>
+			</div>
+		</div>
+	</div>
+
+	<div data-role="page" id="confirmUpload" data-transition="pop"
+		data-rel="dialog">
+		<div data-role="header">
+			<h1>FoundFree Stuff Shared!</h1>
+		</div>
+		<div data-role="content">
+			<ul data-role='listview'>
+				<li data-role="list-divider" role="heading" data-theme="a">
+					<h2 style="">
+						<em>FoundFree Suff is shared!</em>
+					</h2></li>
+			</ul>
+			<br />
+			<p>
+				<a href="#browse" data-role="button" data-theme="a">OK</a>
+			</p>
+		</div>
+	</div>
+
+</body>
+</html>

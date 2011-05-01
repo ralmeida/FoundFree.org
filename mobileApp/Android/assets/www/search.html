@@ -1,0 +1,82 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<title>FoundFree</title>
+<link rel="stylesheet"
+	href="http://code.jquery.com/mobile/1.0a4.1/jquery.mobile-1.0a4.1.min.css" />
+<link rel="stylesheet" href="css/foundfree.css" />
+<script type="text/javascript" charset="utf-8"
+	src="scripts/php.full.min.js"></script>
+<script type="text/javascript" charset="utf-8" src="phonegap.0.9.4.js"></script>
+<script src="http://www.google.com/jsapi?key=" type="text/javascript"></script>
+<script type="text/javascript">
+		google.load("maps", "3", {'other_params':'sensor=true'});
+	</script>
+<script type="text/javascript" src="scripts/jquery.min.js"></script>
+<script type="text/javascript"
+	src="scripts/jquery.mobile-1.0a4.1.min.js"></script>
+<script type="text/javascript" src="scripts/jquery.ui.map.min.js"></script>
+<script type="text/javascript" src="scripts/foundfree.js"></script>
+<script type="text/javascript" charset="utf-8">
+
+   	// PhoneGap is loaded and it is now safe to make calls PhoneGap methods
+   	function onDeviceReady() {
+   		//alert("You are loading onDeviceReady");
+   	}
+    
+    $(function() {
+    	$('body').append('<div id="block-ui"></div>');
+    	$.mobile.loadingMessage = 'Loading "FoundFree" Stuff...';
+    	showLoading(true);
+		
+     	getLocalListings(null, function(respData) {
+			var items=respData.data;
+			var list = $('#list');
+			list.html("");
+			$.each(items, function(key, val) {
+				item = "<a href='' class='stuffRow' id='_sRow-"+val.id+"'><div>" +
+					   "<h3>"+val.title+"<h3>" +
+					   "<img src='"+val.img+"' /> " +
+					   " <br />" +
+					   "<small>Found by <em>" + val.user + "</em></small>" +
+					   "</div></a>";
+				list.append( $(document.createElement('li')).html(item) );
+					});
+			list.listview("destroy").listview();
+			showLoading(false);
+		});
+       	
+       	$(".stuffRow").live("click", function() {
+       		id = str_replace("_sRow-","",$(this).attr("id"));
+       		//load details
+       		$("#stuff_detail_title").html("");
+       		//show page
+       		getRecord(id);
+       		return false;
+       	});
+       	
+		document.addEventListener("deviceready", onDeviceReady, false);
+	});
+    </script>
+
+</head>
+<body>
+
+	<div data-role="page" data-transition="slide" id="search">
+		<div data-role="header" data-position="fixed" data-inline="true">
+			<h1>Search FoundFree Stuff</h1>
+			<div data-role="fieldcontain" class="ui-body">
+				<input type="text" name="search" id="searchBox" value=""
+					data-theme="a" style="display: inline;" />
+				<button type="submit" data-theme="a" id="searchButton"
+					style="display: inline;">Search</button>
+			</div>
+		</div>
+		<div data-role="content" id='search_content'>
+			<ul data-role='listview' id='list'></ul>
+		</div>
+	</div>
+
+</body>
+</html>
+
